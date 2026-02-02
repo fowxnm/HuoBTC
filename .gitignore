@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment (do not commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Logs & cache
+*.log
+npm-debug.log*
+.cache/
+.parcel-cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Optional: keep .env.example
+!.env.example
