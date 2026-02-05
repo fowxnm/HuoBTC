@@ -26,6 +26,7 @@ import OrderBook from '../components/OrderBook';
 import RecentTrades from '../components/RecentTrades';
 import NewsFeed from '../components/NewsFeed';
 import MarketDrawer from '../components/MarketDrawer';
+import TradingModeSwitch from '../components/TradingModeSwitch';
 
 function coinIconUrl(item: { currency_name: string; logo?: string | null }): string {
   return getCoinIcon(item.currency_name, item.logo);
@@ -300,8 +301,12 @@ const SecondsContract: Component = () => {
 
   return (
     <ErrorBoundary fallback={<div class="p-4 text-red-400">{t('common.pageLoadError')}</div>}>
-      <div class="trade-page-bizzan bg-[#0b0e11] min-h-screen flex flex-col">
-        <div class="trade-grid flex-1 p-2 gap-2 min-h-0 max-h-[calc(100vh-56px)] overflow-hidden">
+      <div class="trade-page-bizzan bg-[#0b0e11] min-h-screen flex flex-col pb-16 md:pb-0">
+        {/* 手机版：交易模式快捷切换 */}
+        <div class="md:hidden p-2 bg-[#0b0e11] border-b border-[#2c2c3e]">
+          <TradingModeSwitch />
+        </div>
+        <div class="trade-grid flex-1 p-2 gap-2 min-h-0 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-56px)] overflow-hidden">
           {/* 左侧：市场列表（与现货一致排版） */}
           <div class="trade-left flex flex-col bg-[#1e2329] rounded border border-[#2c2c3e] max-h-[calc(100vh-100px)]">
             <div class="flex gap-0.5 p-1.5 border-b border-[#2c2c3e]">

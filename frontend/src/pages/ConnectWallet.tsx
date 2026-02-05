@@ -1,6 +1,7 @@
 /**
- * 连接钱包页：点击即打开 Web3Modal (AppKit)，支持 530+ 钱包
- * 连接后仍走后端 /api/auth/nonce → personal_sign → /api/auth/verify
+ * 连接钱包页 - 纯 TRON 模式
+ * 支持 TronLink + WalletConnect（其他 TRON 钱包）
+ * 连接后走后端 /api/auth/nonce → sign → /api/auth/verify
  */
 import { Component, createSignal, onMount, createEffect } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
@@ -40,7 +41,7 @@ const ConnectWallet: Component = () => {
               </svg>
             </div>
             <h1 class="text-2xl font-bold">{t('common.connectWallet')}</h1>
-            <p class="text-gray-400 mt-2">支持 530+ 钱包，PC 插件 / 移动端扫码或 App</p>
+            <p class="text-gray-400 mt-2">支持 TronLink 及其他 TRON 钱包</p>
           </div>
 
           {(errMsg()) && (
@@ -68,7 +69,7 @@ const ConnectWallet: Component = () => {
           </button>
 
           <p class="text-center text-gray-500 text-sm mt-6">
-            以太坊 (ETH) / 波场 (Tron) 网络，连接后需签名完成登录
+            波场 (TRON) 网络，连接后需签名完成登录
           </p>
         </div>
       </div>

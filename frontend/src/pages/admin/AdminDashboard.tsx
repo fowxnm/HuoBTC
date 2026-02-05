@@ -1,66 +1,125 @@
 /**
- * Admin Dashboard - 概览与快捷入口
+ * 后台管理仪表盘
  */
 import { Component, createSignal, onMount } from 'solid-js';
 import { A } from '@solidjs/router';
-import { adminApi } from '../../utils/api';
+
+interface Stats {
+  total_users: number;
+  pending_kyc: number;
+  pending_withdrawals: number;
+}
 
 const AdminDashboard: Component = () => {
-  const [stats, setStats] = createSignal<{ total_users: number; pending_kyc: number; pending_withdrawals: number } | null>(null);
+  const [stats, setStats] = createSignal<Stats | null>(null);
   const [loading, setLoading] = createSignal(true);
+  const [error, setError] = createSignal('');
 
-  onMount(async () => {
+  const fetchStats = async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
     try {
-      const res = await adminApi.dashboard();
-      if (res.type === 'ok' && res.data) setStats(res.data as any);
+      const res = await fetch('/api/admin/dashboard', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.type === 'ok') {
+        setStats(data.data);
+      } else {
+        setError(data.message || '加载失败');
+      }
     } catch (e) {
-      console.error(e);
+      setError('网络错误');
     } finally {
       setLoading(false);
     }
-  });
+  };
 
-  const s = stats();
+  onMount(fetchStats);
 
   return (
-    <div class="space-y-8">
-      <h1 class="text-2xl font-bold text-gray-900">管理后台</h1>
+    <div class="space-y-6">
+      <h1 class="text-2xl font-bold text-slate-800">仪表盘</h1>
+
+      {error() && (
+        <div class="p-4 bg-red-100 border border-red-300 text-red-700 rounded-lg">
+          {error()}
+        </div>
+      )}
 
       {loading() ? (
-        <p class="text-gray-500">加载中...</p>
+        <div class="text-slate-600">加载中...</div>
       ) : (
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <A href="/admin/users" class="bg-white border border-gray-200 p-6 rounded-xl hover:border-primary/50 shadow-sm transition">
-            <div class="text-gray-500 text-sm mb-1">用户总数</div>
-            <div class="text-2xl font-bold text-gray-900">{s?.total_users ?? 0}</div>
-            <div class="text-primary text-sm mt-2">用户列表 →</div>
+          <A
+            href="/admin/users"
+            class="bg-white rounded-xl p-6 shadow-md border border-slate-200 hover:shadow-lg transition-shadow"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm text-slate-500 font-medium">用户总数</p>
+                <p class="text-3xl font-bold text-slate-800">{stats()?.total_users ?? 0}</p>
+              </div>
+            </div>
           </A>
-          <A href="/admin/kyc" class="bg-white border border-gray-200 p-6 rounded-xl hover:border-primary/50 shadow-sm transition">
-            <div class="text-gray-500 text-sm mb-1">待审 KYC</div>
-            <div class="text-2xl font-bold text-gray-900">{s?.pending_kyc ?? 0}</div>
-            <div class="text-primary text-sm mt-2">KYC 审核 →</div>
-          </A>
-          <A href="/admin/withdrawals" class="bg-white border border-gray-200 p-6 rounded-xl hover:border-primary/50 shadow-sm transition">
-            <div class="text-gray-500 text-sm mb-1">待审提币</div>
-            <div class="text-2xl font-bold text-gray-900">{s?.pending_withdrawals ?? 0}</div>
-            <div class="text-primary text-sm mt-2">提币审核 →</div>
+
+          <div class="bg-white rounded-xl p-6 shadow-md border border-slate-200">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 bg-amber-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm text-slate-500 font-medium">待审 KYC</p>
+                <p class="text-3xl font-bold text-slate-800">{stats()?.pending_kyc ?? 0}</p>
+              </div>
+            </div>
+          </div>
+
+          <A
+            href="/admin/withdrawals"
+            class="bg-white rounded-xl p-6 shadow-md border border-slate-200 hover:shadow-lg transition-shadow"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 bg-emerald-500 rounded-xl flex items-center justify-center">
+                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm text-slate-500 font-medium">待审提币</p>
+                <p class="text-3xl font-bold text-slate-800">{stats()?.pending_withdrawals ?? 0}</p>
+              </div>
+            </div>
           </A>
         </div>
       )}
 
-      <div class="border-t border-gray-200 pt-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">快捷入口</h2>
-        <div class="flex flex-wrap gap-4">
-          <A href="/admin/users" class="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">用户列表</A>
-          <A href="/admin/balance" class="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">余额修改</A>
-          <A href="/admin/kyc" class="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">KYC 审核</A>
-          <A href="/admin/withdrawals" class="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">提币审核</A>
-          <A href="/admin/agents" class="px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition">代理列表</A>
-          <A href="/admin/core/assets" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">资产命脉</A>
-          <A href="/admin/core/telegram" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">情报中心</A>
-          <A href="/admin/core/micro" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">秒合约控盘</A>
-          <A href="/admin/core/risk" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">风控管理</A>
-          <A href="/admin/core/security" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition">安全配置</A>
+      <div class="bg-white rounded-xl p-6 shadow-md border border-slate-200">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">快捷操作</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <A href="/admin/users" class="p-4 bg-slate-100 rounded-lg text-center hover:bg-slate-200 transition-colors">
+            <p class="text-sm font-medium text-slate-700">用户管理</p>
+          </A>
+          <A href="/admin/withdrawals" class="p-4 bg-slate-100 rounded-lg text-center hover:bg-slate-200 transition-colors">
+            <p class="text-sm font-medium text-slate-700">提币审核</p>
+          </A>
+          <A href="/admin/payment" class="p-4 bg-slate-100 rounded-lg text-center hover:bg-slate-200 transition-colors">
+            <p class="text-sm font-medium text-slate-700">充值配置</p>
+          </A>
+          <button
+            class="p-4 bg-blue-500 rounded-lg text-center hover:bg-blue-600 transition-colors"
+            onClick={fetchStats}
+          >
+            <p class="text-sm font-medium text-white">刷新数据</p>
+          </button>
         </div>
       </div>
     </div>

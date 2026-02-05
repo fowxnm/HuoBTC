@@ -12,8 +12,8 @@ export interface OHLCBar {
   volume?: number;
 }
 
-/** 使用 data-api 域名，支持浏览器 CORS */
-const BINANCE_KLINES = 'https://data-api.binance.vision/api/v3/klines';
+/** 通过后端代理避免 CORS 问题 */
+const BINANCE_KLINES = '/api/binance/klines';
 
 /** 我方周期 -> Binance interval，1y 用 1d + limit=365 */
 const INTERVAL_MAP: Record<string, string> = {

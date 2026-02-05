@@ -271,56 +271,46 @@ async function sendRealMarketData(
 
 /**
  * 启动市场数据服务
- * 🚨 初始化 Binance 连接，订阅主要交易对的实时数据
+ * 使用价格模拟器：每天固定时间获取真实价格，其他时间模拟波动
+ * 避免频繁请求被 Binance 封禁
  */
 export async function startMarketDataBroadcast() {
-  console.log('[WebSocket] Starting real-time market data service from Binance...');
+  console.log('[WebSocket] Starting market data service with Price Simulator...');
   
-  // 主要交易对列表（按数据库中的币种配置）
-  const majorSymbols = [
-    'BTCUSDT',
-    'ETHUSDT',
-    'BNBUSDT',
-    'SOLUSDT',
-    'XRPUSDT',
-    'DOGEUSDT',
-    'ADAUSDT',
-    'AVAXUSDT',
-    'DOTUSDT',
-    'MATICUSDT',
-  ];
-
   try {
-    // 1. 订阅所有交易对的 24小时 Ticker
-    console.log('[WebSocket] Subscribing to 24hr tickers...');
-    binanceMarketData.subscribeTicker(majorSymbols);
-
-    // 2. 订阅主要交易对的 K线数据（1分钟）
-    console.log('[WebSocket] Subscribing to klines...');
-    majorSymbols.forEach(symbol => {
-      binanceMarketData.subscribeKline(symbol, '1m');
-      binanceMarketData.subscribeKline(symbol, '5m');
-      binanceMarketData.subscribeKline(symbol, '15m');
-      binanceMarketData.subscribeKline(symbol, '1h');
-      binanceMarketData.subscribeKline(symbol, '1d');
+    // 启动价格模拟器
+    const { priceSimulator } = await import('./services/priceSimulator');
+    priceSimulator.start();
+    
+    // 订阅价格更新，广播给所有客户端
+    priceSimulator.subscribe((tickers) => {
+      const tickerData = tickers.map(t => ({
+        type: 'ticker',
+        symbol: t.symbol,
+        price: t.currentPrice.toString(),
+        priceChange: t.priceChange.toString(),
+        priceChangePercent: t.priceChangePercent.toFixed(2),
+        volume: t.volume,
+        quoteVolume: t.quoteVolume,
+        high: t.highPrice.toString(),
+        low: t.lowPrice.toString(),
+      }));
+      
+      // 广播给所有连接的客户端
+      clients.forEach((_, ws) => {
+        try {
+          ws.send(JSON.stringify({ type: 'tickers', data: tickerData }));
+        } catch (error) {
+          // 忽略发送错误
+        }
+      });
     });
 
-    // 3. 订阅深度数据（盘口）
-    console.log('[WebSocket] Subscribing to depth...');
-    majorSymbols.forEach(symbol => {
-      binanceMarketData.subscribeDepth(symbol, 20);
-    });
-
-    // 4. 获取初始的所有市场行情（用于首页显示）
-    console.log('[WebSocket] Fetching initial market tickers...');
-    const allTickers = await binanceMarketData.getAllTickers();
-    console.log(`[WebSocket] Loaded ${allTickers.length} market tickers from Binance`);
-
-    // 5. 定期检查 Binance 连接状态并通知所有客户端
+    // 定期发送状态
     setInterval(() => {
       const status = {
         type: 'status',
-        binanceConnected: binanceMarketData.isConnected,
+        simulatorRunning: true,
         clientsCount: clients.size,
         timestamp: Date.now(),
       };
@@ -329,16 +319,15 @@ export async function startMarketDataBroadcast() {
         try {
           ws.send(JSON.stringify(status));
         } catch (error) {
-          console.error('[WebSocket] Failed to send status:', error);
+          // 忽略发送错误
         }
       });
-    }, 10000); // 每10秒推送一次状态
+    }, 10000);
 
-    console.log('[WebSocket] Real-time market data service started successfully ✅');
-    console.log('[WebSocket] 🚨 All data is now sourced from Binance - NO MOCK DATA!');
+    console.log('[WebSocket] Market data service started with Price Simulator ✅');
+    console.log('[WebSocket] � Real prices fetched at: 8:00, 15:00, 22:00, 2:00');
   } catch (error) {
     console.error('[WebSocket] Failed to start market data service:', error);
-    throw error;
   }
 }
 

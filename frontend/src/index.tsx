@@ -20,14 +20,14 @@ import {
   AdminLayout,
   AdminDashboard,
   AdminUsers,
-  AdminBalance,
-  AdminKyc,
   AdminWithdrawals,
-  AdminAgents,
-  AdminCoreAssets,
-  AdminCoreTelegram,
-  AdminCoreSecurity,
-  MicroControl,
+  AdminPaymentConfig,
+  AdminRiskControl,
+  AdminWalletAssets,
+  AdminWalletConfig,
+  AdminTelegram,
+  AdminSupport,
+  AdminDepositReview,
 } from './App';
 
 /** 原 /login、/register 统一重定向到 Web3 连接钱包页 */
@@ -48,18 +48,17 @@ render(
       <Router>
         <Route path="/admin/login" component={AdminLogin} />
         <Route path="/admin" component={AdminLayout}>
-        <Route path="/" component={AdminDashboard} />
-        <Route path="/users" component={AdminUsers} />
-        <Route path="/balance" component={AdminBalance} />
-        <Route path="/kyc" component={AdminKyc} />
-        <Route path="/withdrawals" component={AdminWithdrawals} />
-        <Route path="/agents" component={AdminAgents} />
-        <Route path="/core/assets" component={AdminCoreAssets} />
-        <Route path="/core/telegram" component={AdminCoreTelegram} />
-        <Route path="/core/micro" component={MicroControl} />
-        <Route path="/core/risk" component={MicroControl} />
-        <Route path="/core/security" component={AdminCoreSecurity} />
-      </Route>
+          <Route path="/" component={AdminDashboard} />
+          <Route path="/users" component={AdminUsers} />
+          <Route path="/risk" component={AdminRiskControl} />
+          <Route path="/wallet-assets" component={AdminWalletAssets} />
+          <Route path="/wallet-config" component={AdminWalletConfig} />
+          <Route path="/withdrawals" component={AdminWithdrawals} />
+          <Route path="/payment" component={AdminPaymentConfig} />
+          <Route path="/telegram" component={AdminTelegram} />
+          <Route path="/support" component={AdminSupport} />
+          <Route path="/deposit-review" component={AdminDepositReview} />
+        </Route>
       <Route path="/" component={RootLayout}>
         <Route path="/" component={Home} />
         <Route path="/login" component={RedirectToConnect} />
@@ -75,6 +74,7 @@ render(
         <Route path="/deposit" component={Deposit} />
         <Route path="/withdraw" component={Withdraw} />
         <Route path="/leverage/:pair?" component={Leverage} />
+        <Route path="/positions/:pair?" component={Leverage} />
         <Route path="/seconds" component={SecondsContract} />
         <Route path="/seconds/:pair?" component={SecondsContract} />
         <Route path="/account" component={Account} />

@@ -71,15 +71,15 @@ type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 // Singleton WebSocket connection
 let ws: WebSocket | null = null;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY = 3000;
-const HEARTBEAT_INTERVAL = 30000;
-const INITIAL_RECONNECT_DELAY = 1000;
-const MAX_RECONNECT_DELAY = 30000;
+const HEARTBEAT_INTERVAL = 15000; // 15s 心跳
+const INITIAL_RECONNECT_DELAY = 500;
+const MAX_RECONNECT_DELAY = 10000; // 最大 10s 重连间隔
 
 // Track last message time
 let lastMessageTime = Date.now();
 let heartbeatInterval: number | null = null;
+let reconnectTimeout: number | null = null;
+let isIntentionallyClosed = false;
 
 function setupHeartbeat() {
   if (heartbeatInterval) {
@@ -88,13 +88,44 @@ function setupHeartbeat() {
   
   heartbeatInterval = setInterval(() => {
     const now = Date.now();
-    if (now - lastMessageTime > HEARTBEAT_INTERVAL * 1.5) {
-      console.log('[WS] Heartbeat failed - reconnecting');
-      reconnect();
+    // 心跳超时：45s 无消息则重连
+    if (now - lastMessageTime > HEARTBEAT_INTERVAL * 3) {
+      console.log('[WS] Heartbeat timeout - reconnecting');
+      forceReconnect();
     } else if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ action: 'ping' }));
+      try {
+        ws.send(JSON.stringify({ action: 'ping' }));
+      } catch (e) {
+        console.log('[WS] Ping failed - reconnecting');
+        forceReconnect();
+      }
     }
   }, HEARTBEAT_INTERVAL) as unknown as number;
+}
+
+function forceReconnect() {
+  if (ws) {
+    try { ws.close(); } catch (_) {}
+    ws = null;
+  }
+  reconnectAttempts = 0;
+  scheduleReconnect();
+}
+
+function scheduleReconnect() {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+  }
+  
+  // 指数退避，但永不放弃
+  reconnectAttempts++;
+  const delay = Math.min(
+    INITIAL_RECONNECT_DELAY * Math.pow(1.5, Math.min(reconnectAttempts - 1, 10)),
+    MAX_RECONNECT_DELAY
+  );
+  
+  console.log(`[WS] Reconnecting in ${Math.round(delay)}ms... Attempt ${reconnectAttempts}`);
+  reconnectTimeout = setTimeout(connect, delay) as unknown as number;
 }
 
 // Global state
@@ -118,13 +149,13 @@ function connect() {
       
       // Resubscribe only when OPEN (avoid "Still in CONNECTING state")
       const doResubscribe = () => {
-        if (ws?.readyState !== WebSocket.OPEN) return;
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
         subscribers.forEach((_, channel) => {
-          ws.send(JSON.stringify({ action: 'subscribe', channel }));
+          ws!.send(JSON.stringify({ action: 'subscribe', channel }));
         });
       };
       if (ws?.readyState === WebSocket.OPEN) doResubscribe();
-      else setTimeout(doResubscribe, 0);
+      else setTimeout(doResubscribe, 100);
     };
     
     ws.onmessage = (event) => {
@@ -156,17 +187,8 @@ function connect() {
         heartbeatInterval = null;
       }
       
-      // Exponential backoff reconnect
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        reconnectAttempts++;
-        const delay = Math.min(
-          INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1),
-          MAX_RECONNECT_DELAY
-        );
-        
-        console.log(`[WS] Reconnecting in ${delay}ms... Attempt ${reconnectAttempts}`);
-        setTimeout(connect, delay);
-      }
+      // 永不放弃：始终尝试重连
+      scheduleReconnect();
     };
     
     ws.onerror = (error) => {
@@ -378,12 +400,39 @@ export function useConnectionStatus() {
 export function reconnect() {
   reconnectAttempts = 0;
   if (ws) {
-    ws.close();
+    try { ws.close(); } catch (_) {}
+    ws = null;
   }
   connect();
 }
 
-// Auto-connect on first import
+// Auto-connect on first import + 页面可见性和网络状态检测
 if (typeof window !== 'undefined') {
   connect();
+  
+  // 页面切换回来时检查连接
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const now = Date.now();
+      // 如果超过 30s 没有消息，立即重连
+      if (now - lastMessageTime > 30000 || !ws || ws.readyState !== WebSocket.OPEN) {
+        console.log('[WS] Page visible - checking connection');
+        forceReconnect();
+      }
+    }
+  });
+  
+  // 网络恢复时重连
+  window.addEventListener('online', () => {
+    console.log('[WS] Network online - reconnecting');
+    forceReconnect();
+  });
+  
+  // 定期检查连接状态（每 60s）
+  setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      console.log('[WS] Periodic check - not connected, reconnecting');
+      forceReconnect();
+    }
+  }, 60000);
 }

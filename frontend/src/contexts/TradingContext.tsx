@@ -77,7 +77,7 @@ function loadBalances(): Record<string, number> {
 
 function getDefaultBalances(): Record<string, number> {
   return {
-    USDT: 100000,
+    USDT: 0,
     BTC: 0,
     ETH: 0,
     BNB: 0,

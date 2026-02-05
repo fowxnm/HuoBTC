@@ -18,6 +18,7 @@ import OrderBook from '../components/OrderBook';
 import RecentTrades from '../components/RecentTrades';
 import NewsFeed from '../components/NewsFeed';
 import MarketDrawer from '../components/MarketDrawer';
+import TradingModeSwitch from '../components/TradingModeSwitch';
 import { openConnectModal } from '../appkit/openAppKit';
 import { ErrorBoundary } from 'solid-js';
 import { getCoinIcon, onIconError as onCoinIconError } from '../utils/coinIcon';
@@ -81,6 +82,9 @@ const Trade: Component = () => {
   const [volume24h, setVolume24h] = createSignal(0);
   const [orderHistory, setOrderHistory] = createSignal<any[]>([]);
   const [wallets, setWallets] = createSignal<Array<{ currency: number; legal_balance: string; change_balance: string }>>([]);
+  
+  /** 是否使用模拟数据模式（当后端无真实数据时） */
+  const useMockData = () => binanceTicker.price() === 0;
 
   const pair = () => activePair() || 'BTC-USDT';
   const currency = () => activeSymbol();
@@ -348,8 +352,12 @@ const Trade: Component = () => {
 
   return (
     <ErrorBoundary fallback={<div class="p-4 text-red-400">{t('common.pageLoadError')}</div>}>
-      <div class="trade-page-bizzan bg-[#0b0e11] min-h-screen flex flex-col">
-        <div class="trade-grid flex-1 p-2 gap-2 min-h-0 max-h-[calc(100vh-56px)] overflow-hidden">
+      <div class="trade-page-bizzan bg-[#0b0e11] min-h-screen flex flex-col pb-16 md:pb-0">
+        {/* 手机版：交易模式快捷切换 */}
+        <div class="md:hidden p-2 bg-[#0b0e11] border-b border-[#2c2c3e]">
+          <TradingModeSwitch />
+        </div>
+        <div class="trade-grid flex-1 p-2 gap-2 min-h-0 max-h-[calc(100vh-120px)] md:max-h-[calc(100vh-56px)] overflow-hidden">
           {/* 1. 左侧：币对列表，固定高度成比例 */}
           <div class="trade-left flex flex-col bg-[#1e2329] rounded border border-[#2c2c3e] max-h-[calc(100vh-100px)]">
             <div class="flex gap-0.5 p-1.5 border-b border-[#2c2c3e]">

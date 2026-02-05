@@ -1,7 +1,8 @@
-import { Component, createSignal, onMount, For, createEffect, batch } from 'solid-js';
+import { Component, createSignal, onMount, For, createEffect, batch, Show } from 'solid-js';
 import { A, useNavigate } from '@solidjs/router';
 import { useI18n } from '../contexts/I18nContext';
 import { useTrading } from '../contexts/TradingContext';
+import { useAuth } from '../contexts/AuthContext';
 import { api, formatPrice, formatPercent, formatVolume } from '../utils/api';
 import { getCoinIcon, onIconError } from '../utils/coinIcon';
 import { getNewsCache, setNewsCache } from '../utils/newsCache';
@@ -57,7 +58,7 @@ function getInitialHomeMarketData(): MarketItem[] {
       const parsed = JSON.parse(raw) as MarketItem[];
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch (_) {}
+  } catch (_) { }
   return [...HOME_DEFAULT_LIST];
 }
 
@@ -86,7 +87,20 @@ const Home: Component = () => {
   const { t, locale } = useI18n();
   const navigate = useNavigate();
   const { activePair } = useTrading();
+  const { isLoggedIn, user } = useAuth();
   const tradeHref = () => `/trade/${activePair() || 'BTC-USDT'}`;
+
+  const copyUid = () => {
+    const u = user()?.uid;
+    if (!u) return;
+    navigator.clipboard.writeText(u).then(() => {
+      const el = document.getElementById('home-uid-copy-toast');
+      if (el) {
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 1500);
+      }
+    });
+  };
   const initialMarket = getInitialHomeMarketData();
   const [marketData, setMarketData] = createSignal<MarketItem[]>(initialMarket);
   const [loading, setLoading] = createSignal(initialMarket.length > 0 && initialMarket.every((m) => m.now_price === 0));
@@ -94,6 +108,7 @@ const Home: Component = () => {
   const [newsItems, setNewsItems] = createSignal<NewsItem[]>([]);
   const [newsLoading, setNewsLoading] = createSignal(true);
   const [tickerOffset, setTickerOffset] = createSignal(0);
+  const [, setCarouselIndex] = createSignal(0);
 
   const fetchNews = async (lang: string) => {
     const cached = getNewsCache(lang);
@@ -143,11 +158,11 @@ const Home: Component = () => {
             mergeHomeMarketInPlace(current, list);
             batch(() => {
               setMarketData([...current]);
-              try { sessionStorage.setItem(HOME_QUOTATION_CACHE_KEY, JSON.stringify(current)); } catch (_) {}
+              try { sessionStorage.setItem(HOME_QUOTATION_CACHE_KEY, JSON.stringify(current)); } catch (_) { }
             });
           } else {
             setMarketData(list);
-            try { sessionStorage.setItem(HOME_QUOTATION_CACHE_KEY, JSON.stringify(list)); } catch (_) {}
+            try { sessionStorage.setItem(HOME_QUOTATION_CACHE_KEY, JSON.stringify(list)); } catch (_) { }
           }
           success = true;
           break;
@@ -178,7 +193,7 @@ const Home: Component = () => {
 
   // Carousel auto
   onMount(() => {
-    const id = setInterval(() => setCarouselIndex((i) => (i + 1) % 3), 4000);
+    const id = setInterval(() => setCarouselIndex((i: number) => (i + 1) % 3), 4000);
     return () => clearInterval(id);
   });
 
@@ -208,17 +223,36 @@ const Home: Component = () => {
     if (list.length === 0) {
       return [];
     }
-    return list.slice(0, 15).map((m, i) => ({ 
-      key: i, 
-      pair: `${m.currency_name}/${m.legal_name}`, 
+    return list.slice(0, 15).map((m, i) => ({
+      key: i,
+      pair: `${m.currency_name}/${m.legal_name}`,
       symbol: m.currency_name,
-      price: m.now_price, 
-      change: m.change 
+      price: m.now_price,
+      change: m.change
     }));
   };
 
   return (
     <div class="home-page" id="homeTop">
+      {/* 0. 已登录时显眼展示 UID（桌面 + 手机） */}
+      <Show when={isLoggedIn() && user()?.uid}>
+        <section class="home-uid-bar sticky top-0 z-[100] w-full py-3 px-4 md:py-4 md:px-6 bg-[#0a0a12] border-b border-[#2c2c3e] shadow-lg flex items-center justify-center gap-3 md:gap-4 relative" aria-label="用户 UID">
+          <span class="text-gray-400 text-sm md:text-base whitespace-nowrap">{locale()?.startsWith('zh') ? '您的 UID：' : 'Your UID: '}</span>
+          <span class="home-uid-value font-mono font-bold text-primary text-lg md:text-xl tracking-wider select-all" id="home-uid-value">{user()!.uid}</span>
+          <button
+            type="button"
+            class="home-uid-copy ml-1 p-2 md:px-3 md:py-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 border border-primary/50 text-xs md:text-sm font-medium transition"
+            onClick={copyUid}
+            aria-label={locale()?.startsWith('zh') ? '复制 UID' : 'Copy UID'}
+          >
+            {locale()?.startsWith('zh') ? '复制' : 'Copy'}
+          </button>
+          <span id="home-uid-copy-toast" class="home-uid-toast absolute right-4 md:right-8 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#22c55e] text-black text-sm font-medium opacity-0 pointer-events-none transition-opacity duration-200" role="status">
+            {locale()?.startsWith('zh') ? '已复制' : 'Copied'}
+          </span>
+        </section>
+      </Show>
+
       {/* 1. Video Banner */}
       <section class="swi relative overflow-hidden">
         <video
@@ -231,6 +265,12 @@ const Home: Component = () => {
         />
         <div class="sw-box absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white max-w-[850px] flex flex-col items-center justify-center text-center z-10 px-4">
           <div class="top-left">
+            <Show when={isLoggedIn() && user()?.uid}>
+              <p class="mb-4 text-sm md:text-base text-[#cbd9da]">
+                {locale()?.startsWith('zh') ? '您的 UID：' : 'Your UID: '}
+                <span class="font-mono font-bold text-primary text-base md:text-lg tracking-wider">{user()!.uid}</span>
+              </p>
+            </Show>
             <h1 class="text-white text-2xl sm:text-4xl md:text-5xl leading-tight mb-4">
               {t('homeContent.get_rice')}
               <span class="theme-color text-primary ml-1">{SITE_NAME}</span>
@@ -389,29 +429,6 @@ const Home: Component = () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* 3.5 横条行情 - 与行情页同一数据源，紧接「面向所有人」下方 */}
-      <section class="zbgd border-t border-b border-[#2c2c3e] bg-[#0f0f16] py-3 overflow-hidden">
-        <div class="ticker-wrap flex overflow-hidden" style={{ transform: `translateX(-${tickerOffset() * 2}%)` }}>
-          <ul class="ul-gfg flex items-center gap-8 whitespace-nowrap">
-            <For each={[...tickerItems(), ...tickerItems()]}>
-              {(item) => {
-                const ch = typeof item.change === 'number' ? item.change : 0;
-                const isUp = ch >= 0;
-                return (
-                  <li class="li-item flex items-center gap-2 text-white text-sm md:text-base">
-                    <span class="jii">{item.symbol} {typeof item.price === 'number' ? formatPrice(item.price) : item.price}</span>
-                    {typeof item.price === 'number' && <span class="jii text-gray-400 text-xs ml-1">{formatFiatPrice(locale(), item.price)}</span>}
-                    <span class={`jii ${isUp ? 'text-success' : 'text-danger'}`}>
-                      {isUp ? '+' : '-'}({Math.abs(ch).toFixed(2)}%)
-                    </span>
-                  </li>
-                );
-              }}
-            </For>
-          </ul>
         </div>
       </section>
 

@@ -1,0 +1,6 @@
+{
+	"appId": "com.btcexchange.app",
+	"appName": "BTC Exchange",
+	"webDir": "dist",
+	"server": {}
+}

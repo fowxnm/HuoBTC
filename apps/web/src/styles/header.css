@@ -1,0 +1,369 @@
+/* ================================================
+   Header 导航栏样式 (从 lao Vue indexHeader.vue 迁移)
+   ================================================ */
+
+.svg-class {
+  fill: #fff;
+}
+
+#h-tabs, .h-tabs {
+  background-color: #0e0f18;
+  border: 1px solid #1a1b24;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0 0;
+  margin: 0 30px 0 10px;
+  display: flex;
+}
+
+#h-tabs .h-item, .h-tabs .h-item {
+  padding: 0 1.33333vw;
+  color: #888;
+  min-width: 50px;
+  height: 32px;
+  line-height: 32px;
+}
+
+#h-tabs .h-active, .h-tabs .h-active {
+  background-color: #1a1b24;
+  color: #fff;
+  border-radius: 6px;
+}
+
+.fgx {
+  width: 2px;
+  height: 14px;
+  background: #363751;
+  margin-right: 20px;
+  display: block;
+  position: relative;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+.jylist .jy-item {
+  display: flex;
+  font-size: 1rem;
+  padding: 1rem 0;
+  cursor: pointer;
+  padding: 10px 20px;
+}
+
+.jylist .jy-item .r-tetx {
+  margin-left: 10px;
+}
+
+.jylist .jy-item .r-tetx .r-t {
+  font-size: 16px;
+}
+
+.jylist .jy-item .r-tetx .r-s {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.jylist .jy-item:hover {
+  color: #000;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #00e3ff 0%, #089 100%);
+}
+
+.jylist .jy-item:hover .r-s {
+  color: #00373e;
+}
+
+.jylist .jy-item:hover .svg-class {
+  fill: #000;
+}
+
+.head {
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.2%;
+  z-index: 999;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(13px);
+}
+
+.head .head-inner,
+.head .bit-center-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: 40px;
+}
+
+.head .hd-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  color: #fff;
+  min-height: 40px;
+}
+
+.head .hd-left .hl-item {
+  margin-right: 10px;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  min-width: 40px;
+  min-height: 32px;
+  padding: 0 8px;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.head .hd-left .logo-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+.head .hd-left .hl-item .logo,
+.head .hd-left .logo-wrap .logo {
+  height: 1.97rem;
+  display: block;
+  vertical-align: middle;
+}
+
+.head .jy-text {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.head .hd-right {
+  width: 40%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: #999;
+  min-height: 40px;
+}
+
+.head .hd-right .hr-item {
+  white-space: nowrap;
+  margin-left: 2%;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.head .hd-right .hr-item .hi-icon {
+  width: 24px;
+  margin-right: 10px;
+}
+
+.head .hd-right .dlzc {
+  display: flex;
+  align-items: center;
+  margin-left: 0;
+}
+
+.head .hd-right .dlzc .dc-item,
+.head .hd-right .dlzc .zc {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #fff;
+  color: #fff;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100px;
+  min-width: 64px;
+  height: 28px;
+  line-height: 13px;
+  font-size: 12px;
+  margin-left: 0;
+}
+
+.head .hd-right .dlzc .zc.zc-reg {
+  background: #fff;
+  color: #05040b;
+}
+
+.head .hd-right .dlzc .btn-logout {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.head .hd-right .dlzc .btn-logout:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.head .hd-right .hr-item2 {
+  width: 2px;
+  height: 14px;
+  background: #363751;
+  margin-left: 4%;
+  margin-right: 2.5%;
+}
+
+.head .hd-right .lang-wrap {
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* 语言切换与「连接钱包」同款按钮样式 */
+.head .hd-right .lang-select {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #fff;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 100px;
+  min-width: 64px;
+  height: 28px;
+  line-height: 13px;
+  font-size: 12px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23fff'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  padding-right: 28px;
+}
+
+.head .hd-right .lang-select option {
+  background: #1a1b24;
+  color: #fff;
+}
+
+.head .hd-right .cd {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #fff;
+  margin-left: 0;
+  cursor: pointer;
+}
+
+/* 侧边栏 */
+.sidebar {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: -100%;
+  bottom: 0;
+  background: #000;
+  padding: 20px 2rem;
+  font-size: 1.2rem;
+  z-index: 9999;
+  transition: all 0.3s;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar.srShow {
+  left: 0%;
+}
+
+.sidebar .sr-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid #2c2c3e;
+  margin-bottom: 1rem;
+}
+
+.sidebar .tel-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar .tel-nav .tn-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #1a1b24;
+  cursor: pointer;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.sidebar .tel-nav .tn-item:hover {
+  color: var(--color-primary);
+}
+
+.sidebar .tel-nav .tm-title {
+  display: block;
+}
+
+.sidebar .tcdl {
+  display: block;
+  margin-top: 2rem;
+  padding: 0.8rem;
+  text-align: center;
+  background: linear-gradient(90deg, #00e3ff 0%, #089 100%);
+  color: #000;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .head .hd-left .hl-item:not(.logo-wrap):not(#h-tabs):not(.h-tabs) {
+    display: none !important;
+  }
+
+  .head .hd-left .fgx {
+    display: none !important;
+  }
+
+  .head .hd-right .hr-item:not(.lang-wrap) {
+    display: none !important;
+  }
+
+  .head .hd-right .dlzc {
+    display: none !important;
+  }
+
+  .head .hd-right .cd {
+    display: block !important;
+  }
+
+  .head {
+    padding: 0.8rem 4%;
+  }
+}
+
+@media (min-width: 769px) {
+  .sidebar {
+    display: none !important;
+  }
+
+  .sidebar-backdrop {
+    display: none !important;
+  }
+}

@@ -267,7 +267,14 @@ export const authRoutes = new Elysia({ prefix: '/user' })
         user_level: user.userLevel,
         is_auth: user.isAuth,
         status: user.status,
-        wallet_address: user.walletAddress
+        wallet_address: user.walletAddress,
+        uid: user.uid ?? undefined
       }
     };
+  })
+
+  // Logout (预留接口)
+  .post('/logout', async ({ headers }) => {
+    // 前端清除 token 即可，后端无需处理
+    return { type: 'ok', message: 'Logged out' };
   });

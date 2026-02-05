@@ -90,15 +90,38 @@ export const marketRoutes = new Elysia({ prefix: '/market' })
       }
       if (tickerMap.size < cryptoCurrencies.length) {
         try {
-          const binanceTickers = await binanceMarketData.getAllTickers();
-          for (const t of binanceTickers) {
-            if (!t.symbol?.endsWith('USDT')) continue;
-            const native = t.symbol.replace(/USDT$/i, '').toUpperCase();
-            const binanceSymbol = native + 'USDT';
-            if (!tickerMap.has(binanceSymbol)) tickerMap.set(binanceSymbol, t);
+          // 优先使用价格模拟器的缓存数据
+          const { priceSimulator } = await import('../services/priceSimulator');
+          const simulatorTickers = priceSimulator.getAllTickers();
+          if (simulatorTickers.length > 0) {
+            for (const t of simulatorTickers) {
+              if (!t.symbol?.endsWith('USDT')) continue;
+              const native = t.symbol.replace(/USDT$/i, '').toUpperCase();
+              const binanceSymbol = native + 'USDT';
+              if (!tickerMap.has(binanceSymbol)) {
+                tickerMap.set(binanceSymbol, {
+                  symbol: t.symbol,
+                  lastPrice: t.currentPrice.toString(),
+                  priceChangePercent: t.priceChangePercent.toString(),
+                  volume: t.volume,
+                  highPrice: t.highPrice.toString(),
+                  lowPrice: t.lowPrice.toString(),
+                } as any);
+              }
+            }
+            console.log('[Market] Loaded', simulatorTickers.length, 'tickers from Price Simulator');
+          } else {
+            // 如果模拟器没有数据，尝试直接从 Binance 获取
+            const binanceTickers = await binanceMarketData.getAllTickers();
+            for (const t of binanceTickers) {
+              if (!t.symbol?.endsWith('USDT')) continue;
+              const native = t.symbol.replace(/USDT$/i, '').toUpperCase();
+              const binanceSymbol = native + 'USDT';
+              if (!tickerMap.has(binanceSymbol)) tickerMap.set(binanceSymbol, t);
+            }
           }
         } catch (binanceErr) {
-          console.warn('[Market] Binance unavailable:', (binanceErr as Error)?.message);
+          console.warn('[Market] Data source unavailable:', (binanceErr as Error)?.message);
         }
       }
 

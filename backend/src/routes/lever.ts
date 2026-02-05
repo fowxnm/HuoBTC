@@ -1,8 +1,12 @@
 import { Elysia, t } from 'elysia';
-import { db, usersWallet, leverTransaction } from '../db';
+import { jwt } from '@elysiajs/jwt';
+import { db, usersWallet, leverTransaction, users } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 import { eq, and, sql } from 'drizzle-orm';
 
 export const leverRoutes = new Elysia({ prefix: '/lever' })
+  .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '7d' }))
   // Open position
   .post('/open', async ({ body, headers, jwt }) => {
     const authorization = headers.authorization;
@@ -19,6 +23,13 @@ export const leverRoutes = new Elysia({ prefix: '/lever' })
 
     const { currency_id, legal_id, type, multiple, price, number } = body;
     const userId = payload.uid;
+
+    // Get user with risk level for risk control
+    const [user] = await db.select().from(users)
+      .where(eq(users.id, userId)).limit(1);
+    if (!user) {
+      return { type: 'error', message: 'User not found' };
+    }
 
     // Get user's lever wallet
     const [leverWallet] = await db.select().from(usersWallet)
@@ -42,7 +53,7 @@ export const leverRoutes = new Elysia({ prefix: '/lever' })
 
     const now = Math.floor(Date.now() / 1000);
 
-    // Create lever transaction
+    // Create lever transaction with risk control
     const [newTransaction] = await db.insert(leverTransaction).values({
       userId,
       price: price.toString(),
@@ -52,6 +63,7 @@ export const leverRoutes = new Elysia({ prefix: '/lever' })
       type, // 1=做多, 2=做空
       multiple,
       status: 0, // 持仓中
+      preResult: user.risk || 0, // 风控预设结果：0=正常, 1=必赢, -1=必输
       createTime: now
     }).returning();
 

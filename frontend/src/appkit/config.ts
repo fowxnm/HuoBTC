@@ -1,56 +1,31 @@
 /**
- * Web3Modal (AppKit) 核心配置
- * - 网络：mainnet (ETH) + Tron
- * - 点击连接按钮弹出支持 530+ 钱包的 Modal
- * - PC 优先插件 / 移动端自动二维码或 App 列表（由 AppKit 自适应）
+ * 钱包配置 - 纯 TRON 模式
+ * - 优先使用 TronLink (window.tronWeb)
+ * - 已完全移除 AppKit/ethers，避免 TronGrid 轮询错误
  */
-import { createAppKit } from '@reown/appkit/react';
-import { EthersAdapter } from '@reown/appkit-adapter-ethers';
-import { mainnet } from '@reown/appkit/networks';
 
-const projectId =
-  import.meta.env.VITE_WC_PROJECT_ID ||
-  import.meta.env.VITE_APPKIT_PROJECT_ID ||
-  '';
+declare global {
+  interface Window {
+    tronWeb?: {
+      ready: boolean;
+      defaultAddress: { base58: string; hex: string };
+      request: (args: { method: string }) => Promise<{ code?: number }>;
+      trx: {
+        sign: (message: string) => Promise<string>;
+        getBalance: (address: string) => Promise<number>;
+      };
+    };
+  }
+}
 
-const metadata = {
-  name: 'BTC Exchange',
-  description: 'Digital Asset Platform',
-  url: typeof window !== 'undefined' ? window.location.origin : 'https://localhost',
-  icons: [typeof window !== 'undefined' ? `${window.location.origin}/assets/logo.png` : '/assets/logo.png'],
-};
-
-// Tron 主网（自定义链，部分钱包 / WalletConnect 支持）
-const tronMainnet = {
-  id: 728126428,
+export const TRON_CONFIG = {
   name: 'Tron',
+  chainId: '0x2b6653dc',
   nativeCurrency: { name: 'TRX', symbol: 'TRX', decimals: 6 },
-  rpcUrls: {
-    default: { http: ['https://api.trongrid.io'] },
-  },
-  blockExplorers: {
-    default: { name: 'TronScan', url: 'https://tronscan.org' },
-  },
+  rpcUrl: 'https://api.trongrid.io',
+  explorer: 'https://tronscan.org',
 } as const;
 
-const networks = [mainnet, tronMainnet];
+const projectId = import.meta.env.VITE_WC_PROJECT_ID || import.meta.env.VITE_APPKIT_PROJECT_ID || '';
 
-const ethersAdapter = new EthersAdapter();
-
-createAppKit({
-  adapters: [ethersAdapter],
-  networks,
-  projectId,
-  metadata,
-  features: {
-    analytics: false,
-    email: false,
-    socials: [],
-  },
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#f59e0b',
-  },
-});
-
-export { projectId, metadata, networks };
+export { projectId };

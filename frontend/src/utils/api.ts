@@ -1,3 +1,5 @@
+import { API_ROUTES } from '../api/api-map';
+
 const BASE_URL = '/api';
 
 const isProduction = import.meta.env.PROD;
@@ -40,7 +42,7 @@ class Api {
       'Content-Type': 'application/json'
     };
 
-    const isAdmin = endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/agent');
+    const isAdmin = endpoint.startsWith('/api/admin') || endpoint.startsWith('/api/agent') || endpoint.includes('/admin/');
     const token = isAdmin ? localStorage.getItem('admin_token') : localStorage.getItem('token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -125,21 +127,47 @@ export const formatNumber = (num: number | string, decimals: number = 2): string
   const n = typeof num === 'string' ? parseFloat(num) : num;
   if (isNaN(n)) return '0';
   return n.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
+    minimumFractionDigits: 0,
     maximumFractionDigits: decimals
   });
 };
 
+/**
+ * 智能价格格式化 - 与币安一致
+ * - 大于等于 1000: 显示 2 位小数（如 $2,206.43）
+ * - 大于等于 1: 显示 2-4 位有效小数（如 $94.44, $1.57）
+ * - 小于 1: 显示足够有效数字，最多 8 位，去除尾部零（如 $0.1059, $0.2922）
+ */
 export const formatPrice = (price: number | string): string => {
   const p = typeof price === 'string' ? parseFloat(price) : price;
-  if (isNaN(p)) return '$0.00';
+  if (isNaN(p) || p === 0) return '$0.00';
   
   if (p >= 1000) {
-    return `$${formatNumber(p, 2)}`;
+    // 大额：2 位小数
+    return `$${p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  } else if (p >= 100) {
+    // 中等：2 位小数
+    return `$${p.toFixed(2)}`;
   } else if (p >= 1) {
-    return `$${formatNumber(p, 4)}`;
+    // 1-100：2-4 位小数，去除尾部零
+    const fixed = p.toFixed(4);
+    const trimmed = parseFloat(fixed).toString();
+    // 确保至少 2 位小数
+    const parts = trimmed.split('.');
+    if (!parts[1] || parts[1].length < 2) {
+      return `$${p.toFixed(2)}`;
+    }
+    return `$${trimmed}`;
   } else {
-    return `$${formatNumber(p, 8)}`;
+    // 小于 1：智能显示有效数字，去除尾部零
+    const fixed = p.toFixed(8);
+    const trimmed = parseFloat(fixed).toString();
+    // 限制最多显示 6 位小数
+    const parts = trimmed.split('.');
+    if (parts[1] && parts[1].length > 6) {
+      return `$${p.toFixed(6).replace(/\.?0+$/, '')}`;
+    }
+    return `$${trimmed}`;
   }
 };
 
@@ -180,40 +208,43 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
  * 用户认证 API (auth.ts)
  */
 export const authApi = {
-  login: (data: { account: string; password: string; type?: string }) =>
-    api.post('/api/auth/login', data),
+  login: (data: { user_string: string; password: string; type?: number; lang?: string }) =>
+    api.post(API_ROUTES.AUTH.LOGIN, data),
   
   register: (data: {
-    account: string;
+    user_string: string;
     password: string;
     re_password: string;
     extension_code?: string;
-    sms_code?: string;
-  }) => api.post('/api/auth/register', data),
+    code?: string;
+    type?: number;
+    area_code?: string;
+    lang?: string;
+  }) => api.post(API_ROUTES.AUTH.REGISTER, data),
   
   sendCode: (data: { phone?: string; email?: string; type: string }) =>
-    api.post('/api/auth/sendCode', data),
+    api.post(API_ROUTES.AUTH.SEND_CODE, data),
   
-  logout: () => api.post('/api/auth/logout'),
+  logout: () => api.post(API_ROUTES.AUTH.LOGOUT),
 };
 
 /**
  * 用户信息 API (user.ts)
  */
 export const userApi = {
-  info: () => api.get('/api/user/info'),
+  info: () => api.get(API_ROUTES.USER.INFO),
   
   updateProfile: (data: { phone?: string; email?: string }) =>
-    api.put('/api/user/profile', data),
+    api.post(API_ROUTES.USER.UPDATE_PROFILE, data),  // 修正：PUT → POST
   
-  changePassword: (data: { old_password: string; new_password: string }) =>
-    api.post('/api/user/changePassword', data),
+  change_password: (data: { old_password: string; new_password: string }) =>
+    api.post(API_ROUTES.USER.CHANGE_PASSWORD, data),
   
-  setPayPassword: (data: { pay_password: string }) =>
-    api.post('/api/user/setPayPassword', data),
+  set_pay_password: (data: { pay_password: string }) =>
+    api.post(API_ROUTES.USER.SET_PAY_PASSWORD, data),
   
   verify: (data: { real_name: string; id_card: string; images: string[] }) =>
-    api.post('/api/user/verify', data),
+    api.post(API_ROUTES.USER.VERIFY, data),
 };
 
 /**

@@ -6,7 +6,10 @@
  */
 
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { db } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 import { 
   microOrder, users, usersWallet, currency, currencyMatch, accountLog 
 } from '../db/schema';
@@ -27,6 +30,7 @@ const MICRO_SECONDS_CONFIG = [
 ];
 
 export const microRoutes = new Elysia({ prefix: '/micro' })
+  .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '7d' }))
 
   /**
    * Get available time periods

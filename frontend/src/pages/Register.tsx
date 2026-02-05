@@ -1,227 +1,60 @@
-import { Component, createSignal } from 'solid-js';
-import { A, useNavigate, useSearchParams } from '@solidjs/router';
+/**
+ * Register 页面 - 仅支持钱包连接注册
+ * 连接钱包时自动注册/登录
+ */
+import { Component, onMount } from 'solid-js';
+import { useNavigate, useSearchParams } from '@solidjs/router';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../contexts/I18nContext';
+import { openWalletModal } from '../components/WalletModal';
 
 const Register: Component = () => {
-  const { register } = useAuth();
+  const { isLoggedIn } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [tabIndex, setTabIndex] = createSignal(1); // 0=phone, 1=email
-  const [email, setEmail] = createSignal('');
-  const [password, setPassword] = createSignal('');
-  const [confirmPassword, setConfirmPassword] = createSignal('');
-  const [invitationCode, setInvitationCode] = createSignal(searchParams.extension_code || '');
-  const [verificationCode, setVerificationCode] = createSignal('');
-  const [agree, setAgree] = createSignal(false);
-  const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal('');
-  const [countdown, setCountdown] = createSignal(0);
-
-  const handleGetCode = async () => {
-    if (countdown() > 0) return;
-    if (!email().trim()) {
-      setError('Please enter your email');
-      return;
+  // 保存邀请码到 localStorage，钱包连接时使用
+  onMount(() => {
+    if (searchParams.extension_code) {
+      localStorage.setItem('ref_code', searchParams.extension_code);
     }
-
-    // Start countdown
-    setCountdown(60);
-    const interval = setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-
-    // TODO: Call API to send verification code
-  };
-
-  const handleSubmit = async (e: Event) => {
-    e.preventDefault();
-    setError('');
-
-    if (!email().trim()) {
-      setError('Please enter your email');
-      return;
+    if (isLoggedIn()) {
+      navigate('/');
     }
+  });
 
-    if (!password().trim()) {
-      setError('Please enter your password');
-      return;
-    }
-
-    if (password() !== confirmPassword()) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (!agree()) {
-      setError('Please agree to the terms of service');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const success = await register({
-        user_string: email(),
-        password: password(),
-        re_password: confirmPassword(),
-        extension_code: invitationCode(),
-        code: verificationCode(),
-        type: tabIndex() === 0 ? 'mobile' : 'email'
-      });
-
-      if (success) {
-        navigate('/login');
-      } else {
-        setError('Registration failed');
-      }
-    } catch (err) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleConnect = () => {
+    openWalletModal();
   };
 
   return (
     <div class="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-dark-300 via-dark-400 to-dark-500">
       <div class="w-full max-w-md">
-        <div class="card">
+        <div class="card p-8">
           <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold">{t('register.title')}</h1>
-            <p class="text-gray-400 mt-2">{t('register.subtitle')}</p>
+            <div class="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <svg class="w-10 h-10 text-dark-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21.8 8.001c0-.66-.532-1.2-1.2-1.2H3.4c-.66 0-1.2.54-1.2 1.2v7.8c0 .66.54 1.2 1.2 1.2h17.2c.668 0 1.2-.54 1.2-1.2v-7.8zm-9.8 5.6c-1.5 0-2.7-1.2-2.7-2.7s1.2-2.7 2.7-2.7 2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7z"/>
+              </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-white mb-2">{t('register.title')}</h1>
+            <p class="text-gray-400">{t('register.walletHint') || '连接钱包即可自动注册并登录'}</p>
           </div>
 
-          {/* Tabs */}
-          <div class="flex space-x-4 mb-6">
-            <button
-              class={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                tabIndex() === 0 ? 'bg-primary text-dark-400' : 'bg-dark-300 text-gray-400'
-              }`}
-              onClick={() => setTabIndex(0)}
-            >
-              {t('register.phone')}
-            </button>
-            <button
-              class={`flex-1 py-2 rounded-lg font-medium transition-colors ${
-                tabIndex() === 1 ? 'bg-primary text-dark-400' : 'bg-dark-300 text-gray-400'
-              }`}
-              onClick={() => setTabIndex(1)}
-            >
-              {t('register.email')}
-            </button>
-          </div>
+          <button
+            type="button"
+            class="btn btn-primary w-full py-4 text-lg font-semibold flex items-center justify-center gap-3"
+            onClick={handleConnect}
+          >
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21.8 8.001c0-.66-.532-1.2-1.2-1.2H3.4c-.66 0-1.2.54-1.2 1.2v7.8c0 .66.54 1.2 1.2 1.2h17.2c.668 0 1.2-.54 1.2-1.2v-7.8zm-9.8 5.6c-1.5 0-2.7-1.2-2.7-2.7s1.2-2.7 2.7-2.7 2.7 1.2 2.7 2.7-1.2 2.7-2.7 2.7z"/>
+            </svg>
+            {t('common.connectWallet')}
+          </button>
 
-          {error() && (
-            <div class="bg-danger/20 border border-danger/50 text-danger rounded-lg p-3 mb-6">
-              {error()}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} class="space-y-4">
-            <div class="form-group">
-              <label class="form-label">
-                {tabIndex() === 0 ? t('register.phone') : t('register.email')}
-              </label>
-              <input
-                type={tabIndex() === 0 ? 'tel' : 'email'}
-                class="form-input"
-                placeholder={tabIndex() === 0 ? 'Enter phone number' : 'Enter email address'}
-                value={email()}
-                onInput={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">{t('register.verificationCode')}</label>
-              <div class="flex space-x-2">
-                <input
-                  type="text"
-                  class="form-input flex-1"
-                  placeholder="Enter code"
-                  value={verificationCode()}
-                  onInput={(e) => setVerificationCode(e.target.value)}
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline whitespace-nowrap"
-                  onClick={handleGetCode}
-                  disabled={countdown() > 0}
-                >
-                  {countdown() > 0 ? `${countdown()}s` : t('register.getCode')}
-                </button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">{t('register.password')}</label>
-              <input
-                type="password"
-                class="form-input"
-                placeholder="Enter password"
-                value={password()}
-                onInput={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">{t('register.confirmPassword')}</label>
-              <input
-                type="password"
-                class="form-input"
-                placeholder="Confirm password"
-                value={confirmPassword()}
-                onInput={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">{t('register.invitationCode')}</label>
-              <input
-                type="text"
-                class="form-input"
-                placeholder="Enter invitation code (optional)"
-                value={invitationCode()}
-                onInput={(e) => setInvitationCode(e.target.value)}
-              />
-            </div>
-
-            <div class="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={agree()}
-                onChange={(e) => setAgree(e.target.checked)}
-                class="w-4 h-4 rounded border-gray-600 bg-dark-300 text-primary focus:ring-primary"
-              />
-              <span class="text-sm text-gray-400">
-                {t('register.agree')}{' '}
-                <A href="/terms" class="text-primary hover:underline">
-                  {t('register.terms')}
-                </A>
-              </span>
-            </div>
-
-            <button
-              type="submit"
-              class="btn btn-primary w-full"
-              disabled={loading()}
-            >
-              {loading() ? t('common.loading') : t('register.registerBtn')}
-            </button>
-          </form>
-
-          <div class="mt-6 text-center">
-            <span class="text-gray-400">{t('register.hasAccount')} </span>
-            <A href="/login" class="text-primary hover:underline">
-              {t('common.login')}
-            </A>
+          <div class="mt-8 text-center">
+            <p class="text-sm text-gray-500">{t('login.supportedWallets') || '支持 TronLink、TokenPocket、BitKeep、OKX 钱包'}</p>
           </div>
         </div>
       </div>

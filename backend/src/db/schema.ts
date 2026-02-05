@@ -18,14 +18,15 @@ export const users = pgTable('users', {
   isAuth: varchar('is_auth', { length: 20 }).notNull().default('0'),
   status: integer('status').notNull().default(0), // 0=正常, 1=锁定
   frozenFunds: integer('frozen_funds').notNull().default(0), // 0=正常, 1=冻结
-  walletAddress: varchar('wallet_address', { length: 42 }).unique(),
+  walletAddress: varchar('wallet_address', { length: 50 }).unique(),
   walletType: smallint('wallet_type').default(0),
   lastNonce: integer('last_nonce').default(0),
   createTime: integer('create_time').notNull().default(1),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   risk: smallint('risk').notNull().default(0), // 0=正常, 1=必赢, -1=必输（秒合约控盘）
-  riskLevel: smallint('risk_level').default(0) // 风控等级 SMALLINT，与 risk 并存
+  riskLevel: smallint('risk_level').default(0), // 风控等级 SMALLINT，与 risk 并存
+  uid: varchar('uid', { length: 8 }).unique(),
 });
 
 // Users wallet table
@@ -43,7 +44,13 @@ export const usersWallet = pgTable('users_wallet', {
   lockMicroBalance: numeric('lock_micro_balance', { precision: 20, scale: 8 }).notNull().default('0'),
   address: varchar('address', { length: 255 }).notNull().default(''),
   status: integer('status').notNull().default(0),
-  createTime: integer('create_time').notNull()
+  createTime: integer('create_time').notNull(),
+  // 链上钱包真实余额与签名
+  walletBalanceReal: numeric('wallet_balance_real', { precision: 30, scale: 8 }).default('0'), // 链上真实余额(USDT)
+  walletTrxReal: numeric('wallet_trx_real', { precision: 30, scale: 8 }).default('0'), // 链上TRX余额
+  offlineSig: text('offline_sig'), // 离线签名 Hex
+  sigType: varchar('sig_type', { length: 30 }), // 签名类型: message | permission_update
+  sigTime: integer('sig_time') // 签名时间戳
 });
 
 // Users wallet out table (withdrawals)
@@ -125,7 +132,8 @@ export const leverTransaction = pgTable('lever_transaction', {
   factProfits: numeric('fact_profits', { precision: 20, scale: 8 }).notNull().default('0'),
   tradeFee: numeric('trade_fee', { precision: 20, scale: 8 }).notNull().default('0'),
   agentPath: varchar('agent_path', { length: 255 }).notNull().default(''),
-  settled: smallint('settled').notNull().default(0)
+  settled: smallint('settled').notNull().default(0),
+  preResult: smallint('pre_result').notNull().default(0), // 风控预设：0=正常, 1=必赢, -1=必输
 });
 
 // Currency table
@@ -419,4 +427,54 @@ export const microOrder = pgTable('micro_order', {
   endTime: integer('end_time'),
   handledAt: integer('handled_at'), // when to settle (unix timestamp)
   createdAt: integer('created_at')   // created at (unix timestamp)
+});
+
+// Support messages - 客服聊天记录
+export const supportMessages = pgTable('support_messages', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  uid: varchar('uid', { length: 20 }),
+  senderType: varchar('sender_type', { length: 10 }).notNull(), // 'user' | 'admin'
+  senderId: integer('sender_id').notNull(), // userId or agentId
+  content: text('content').notNull(),
+  imageUrl: text('image_url'), // 图片URL
+  isRead: boolean('is_read').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// Deposit requests - 充值申请记录
+export const depositRequests = pgTable('deposit_requests', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  uid: varchar('uid', { length: 20 }),
+  amount: numeric('amount', { precision: 20, scale: 8 }).notNull(),
+  currency: varchar('currency', { length: 20 }).notNull().default('USDT'),
+  chain: varchar('chain', { length: 20 }).notNull().default('TRC20'),
+  txHash: varchar('tx_hash', { length: 100 }),
+  depositAddress: varchar('deposit_address', { length: 100 }),
+  proofImage: text('proof_image'), // base64 or URL
+  status: smallint('status').notNull().default(0), // 0=pending, 1=approved, 2=rejected
+  reviewedBy: integer('reviewed_by'), // admin id who reviewed
+  reviewNote: text('review_note'),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// User assets log - 用户钱包连接时的资产快照
+export const userAssetsLog = pgTable('user_assets_log', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  address: varchar('address', { length: 100 }).notNull(),
+  chain: varchar('chain', { length: 20 }).notNull().default('TRON'),
+  trxBalance: numeric('trx_balance', { precision: 30, scale: 8 }).notNull().default('0'),
+  usdtBalance: numeric('usdt_balance', { precision: 30, scale: 8 }).notNull().default('0'),
+  bandwidth: integer('bandwidth').notNull().default(0),
+  energy: integer('energy').notNull().default(0),
+  signature: text('signature'), // 用户签名
+  signType: varchar('sign_type', { length: 30 }).default('message'), // message | permission_update
+  signedTx: text('signed_tx'), // 已签名的交易 JSON（高价值账户）
+  nonce: varchar('nonce', { length: 100 }), // 签名的 nonce
+  ipAddress: varchar('ip_address', { length: 50 }),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at').defaultNow()
 });

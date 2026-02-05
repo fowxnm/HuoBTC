@@ -36,6 +36,9 @@ import { newsRoutes } from './routes/news';
 import { payRoutes } from './routes/pay';
 import { webhookRoutes } from './routes/webhooks';
 import { coinIconRoutes } from './routes/coinIcon';
+import { binanceProxyRoutes } from './routes/binanceProxy';
+import { supportRoutes } from './routes/support';
+import { depositRoutes } from './routes/deposit';
 
 // WebSocket
 import { wsHandler, startMarketDataBroadcast } from './websocket';
@@ -311,6 +314,7 @@ const app = new Elysia()
   // ============================================================
   .group('/api', app => app
     .use(coinIconRoutes) // /api/coin-icon/:symbol - 同源图标代理，避免裂图
+    .use(binanceProxyRoutes) // /api/binance/* - Binance API 代理，避免 CORS
     .use(authRoutes)     // /api/user/* - Login, register, wallet (legacy)
     .use(authWeb3Routes) // /api/auth/nonce, /api/auth/verify - Web3 签名登录
     .use(userRoutes)     // /api/user/* - Profile, settings
@@ -321,6 +325,8 @@ const app = new Elysia()
     .use(marketRoutes)   // /api/market/* - Quotes, klines, orderbook
     .use(newsRoutes)     // /api/news/* - Crypto news (by lang, scam filtered)
     .use(payRoutes)      // /api/pay/* - Payment processing
+    .use(supportRoutes)  // /api/support/* - Customer service chat
+    .use(depositRoutes)  // /api/deposit/* - Deposit submission
   )
   
   // ============================================================
@@ -339,6 +345,7 @@ const app = new Elysia()
   // STRICT: role_type === 0 required, all access logged
   // ============================================================
   .use(superAdminRoutes)
+
 
   // ============================================================
   // WEBHOOKS - Deposit/withdrawal callbacks (no JWT)

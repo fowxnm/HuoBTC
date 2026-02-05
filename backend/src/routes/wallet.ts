@@ -1,10 +1,14 @@
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { db, users, usersWallet, usersWalletOut, walletLog, chargeReq, siteConfig } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 import { eq, and, sql } from 'drizzle-orm';
 import { compare } from 'bcryptjs';
 import QRCode from 'qrcode';
 
 export const walletRoutes = new Elysia({ prefix: '/wallet' })
+  .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '7d' }))
   // Get rate
   .get('/getRate', async () => {
     const [cnyConfig] = await db.select().from(siteConfig)

@@ -1,9 +1,13 @@
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { db, chargeReq, usersWallet, walletLog } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
 export const payRoutes = new Elysia({ prefix: '/pay' })
+  .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '7d' }))
   // Create payment order
   .post('/createOrder', async ({ body, headers, jwt }) => {
     const authorization = headers.authorization;

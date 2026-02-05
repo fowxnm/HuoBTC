@@ -1,10 +1,11 @@
 /**
- * Solid 组件：挂载 React 版 AppKit 桥，使「连接钱包」打开 Web3Modal
+ * Solid 组件：挂载 TronLink 钱包桥
+ * 纯 TRON 模式，已移除 AppKit
  */
 import { onMount } from 'solid-js';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
-import AppKitBridge from '../appkit/AppKitBridge';
+import TronWalletBridge from '../appkit/AppKitBridge';
 
 export default function AppKitRoot() {
   let container: HTMLDivElement | undefined;
@@ -12,7 +13,7 @@ export default function AppKitRoot() {
   onMount(() => {
     if (!container) return;
     const root = createRoot(container);
-    root.render(React.createElement(AppKitBridge));
+    root.render(React.createElement(TronWalletBridge));
     return () => root.unmount();
   });
 

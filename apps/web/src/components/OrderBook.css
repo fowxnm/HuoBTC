@@ -1,0 +1,73 @@
+.order-book {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background-color: #0b0e11;
+  color: white;
+}
+
+.asks, .bids {
+  display: flex;
+  flex-direction: column;
+}
+
+.ask, .bid {
+  padding: 4px 10px;
+  position: relative;
+}
+.ask.ob-row, .bid.ob-row {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr;
+  gap: 8px;
+}
+
+.current-price {
+  text-align: center;
+  padding: 10px;
+  background-color: #1e2329;
+  font-weight: bold;
+}
+
+.ob-header {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #7a8598;
+  border-bottom: 1px solid #1e2329;
+}
+.ob-row {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 0.8fr;
+  gap: 8px;
+}
+.ob-row .price { text-align: left; }
+.ob-row .amount,
+.ob-row .cumulative { text-align: right; }
+
+.depth-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  opacity: 0.35;
+  z-index: 0;
+  grid-column: 1 / -1;
+  pointer-events: none;
+}
+
+.depth-bar-ask {
+  right: 0;
+  background-color: rgba(246, 70, 93, 0.35);
+}
+
+.depth-bar-bid {
+  left: 0;
+  background-color: rgba(46, 189, 133, 0.35);
+}
+
+.ask > span,
+.bid > span {
+  position: relative;
+  z-index: 1;
+}

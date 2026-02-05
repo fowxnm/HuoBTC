@@ -1,88 +1,30 @@
 /**
- * React 桥：挂载 AppKit 并暴露 open 给 Solid；连接后走后端 nonce → sign → verify
+ * TRON 钱包桥 - 触发钱包选择弹窗
+ * 此文件保留以兼容旧代码，实际逻辑已移至 WalletModal
  */
-import { useEffect, useRef } from 'react';
-import { useAppKit, useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
-import { BrowserProvider } from 'ethers';
-import '../appkit/config';
-import { api } from '../utils/api';
-import { setWalletConnected, setWalletLoading, setWalletError } from '../stores/walletStore';
+import { openWalletModal } from '../components/WalletModal';
 
 declare global {
   interface Window {
-    __openAppKit?: (options?: { view?: string }) => void;
-    __closeAppKit?: () => void;
+    __openTronWallet?: () => void;
+    __closeTronWallet?: () => void;
   }
 }
 
-function AppKitBridgeInner() {
-  const { open, close } = useAppKit();
-  const { address, isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider('eip155') as { walletProvider?: unknown };
-  const authDoneRef = useRef<Set<string>>(new Set());
+// 初始化全局函数
+if (typeof window !== 'undefined') {
+  window.__openTronWallet = () => {
+    openWalletModal();
+  };
 
-  useEffect(() => {
-    window.__openAppKit = (opts) => open(opts || { view: 'Connect' });
-    window.__closeAppKit = close;
-    return () => {
-      delete window.__openAppKit;
-      delete window.__closeAppKit;
-    };
-  }, [open, close]);
+  window.__closeTronWallet = () => {
+    // 断开连接逻辑在 walletStore 中处理
+  };
+}
 
-  useEffect(() => {
-    if (!isConnected || !address || !walletProvider || authDoneRef.current.has(address)) return;
-
-    const runAuth = async () => {
-      setWalletLoading(true);
-      setWalletError(null);
-      try {
-        const nonceRes = await api.get('/api/auth/nonce', { address }) as { type: string; nonce?: string };
-        if (nonceRes.type !== 'ok' || !nonceRes.nonce) {
-          setWalletError('获取签名随机数失败');
-          return;
-        }
-        const nonce = nonceRes.nonce;
-        const provider = new BrowserProvider(walletProvider as import('ethers').Eip1193Provider);
-        const signer = await provider.getSigner();
-        const signature = await signer.signMessage(nonce);
-
-        const response = await api.post('/api/auth/verify', {
-          address,
-          signature,
-          nonce,
-        });
-        if (response.type === 'ok') {
-          setWalletConnected({
-            address: response.data.address,
-            token: response.token,
-            user: {
-              id: response.data.user_id,
-              account_number: response.data.account,
-              wallet_address: response.data.address,
-            },
-          });
-          authDoneRef.current.add(address);
-          window.__closeAppKit?.();
-        } else {
-          setWalletError('签名验证失败，请重试');
-        }
-      } catch (err: unknown) {
-        const e = err as { code?: number; message?: string };
-        if (e?.code === 4001) {
-          setWalletError('您已取消签名');
-        } else {
-          setWalletError((e?.message as string) || '连接失败，请重试');
-        }
-      } finally {
-        setWalletLoading(false);
-      }
-    };
-
-    runAuth();
-  }, [isConnected, address, walletProvider]);
-
+// React 组件（兼容 AppKitRoot）
+function TronWalletBridge() {
   return null;
 }
 
-export default AppKitBridgeInner;
+export default TronWalletBridge;

@@ -33,34 +33,34 @@ const Account: Component = () => {
     setMessage({ type: '', text: '' });
 
     if (newPassword() !== confirmPassword()) {
-      setMessage({ type: 'error', text: 'Passwords do not match' });
+      setMessage({ type: 'error', text: t('account.passwordsNotMatch') });
       return;
     }
 
     if (newPassword().length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+      setMessage({ type: 'error', text: t('account.passwordMinLength') });
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await api.post('/api/user/change-password', {
+      const response = await api.post('/api/user/change_password', {
         old_password: oldPassword(),
-        password: newPassword(),
-        repassword: confirmPassword()
+        new_password: newPassword(),
+        confirm_password: confirmPassword()
       });
 
       if (response.type === 'ok') {
-        setMessage({ type: 'success', text: 'Password changed successfully' });
+        setMessage({ type: 'success', text: t('account.passwordChangedSuccess') });
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setMessage({ type: 'error', text: response.message || 'Failed to change password' });
+        setMessage({ type: 'error', text: response.message || t('account.changePasswordFailed') });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to change password' });
+      setMessage({ type: 'error', text: t('account.changePasswordFailed') });
     } finally {
       setLoading(false);
     }
@@ -71,31 +71,32 @@ const Account: Component = () => {
     setMessage({ type: '', text: '' });
 
     if (payPassword() !== confirmPayPassword()) {
-      setMessage({ type: 'error', text: 'Pay passwords do not match' });
+      setMessage({ type: 'error', text: t('account.passwordsNotMatch') });
       return;
     }
 
     if (payPassword().length !== 6) {
-      setMessage({ type: 'error', text: 'Pay password must be 6 digits' });
+      setMessage({ type: 'error', text: t('account.payPasswordMust6Digits') });
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await api.post('/api/user/set-pay-password', {
-        pay_password: payPassword()
+      const response = await api.post('/api/user/set_pay_password', {
+        pay_password: payPassword(),
+        confirm_pay_password: confirmPayPassword()
       });
 
       if (response.type === 'ok') {
-        setMessage({ type: 'success', text: 'Pay password set successfully' });
+        setMessage({ type: 'success', text: t('account.payPasswordSetSuccess') });
         setPayPassword('');
         setConfirmPayPassword('');
       } else {
-        setMessage({ type: 'error', text: response.message || 'Failed to set pay password' });
+        setMessage({ type: 'error', text: response.message || t('account.setPayPasswordFailed') });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to set pay password' });
+      setMessage({ type: 'error', text: t('account.setPayPasswordFailed') });
     } finally {
       setLoading(false);
     }
@@ -116,11 +117,11 @@ const Account: Component = () => {
           <div class="text-center mb-6">
             <div class="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <span class="text-primary text-2xl font-bold">
-                {user()?.account_number?.slice(0, 2) || 'U'}
+                {user()?.uid?.slice(0, 2) || 'U'}
               </span>
             </div>
-            <h3 class="font-semibold">{user()?.account_number || 'User'}</h3>
-            <p class="text-sm text-gray-500">{user()?.email || 'No email'}</p>
+            <h3 class="font-semibold">{user()?.uid || '-'}</h3>
+            <p class="text-sm text-gray-500">{user()?.email || t('account.notSet')}</p>
           </div>
 
           <nav class="space-y-2">
@@ -175,25 +176,25 @@ const Account: Component = () => {
             <h2 class="text-lg font-semibold mb-6">{t('account.profile')}</h2>
             <div class="space-y-4">
               <div class="flex justify-between py-3 border-b border-gray-700">
-                <span class="text-gray-400">Account Number</span>
-                <span>{user()?.account_number || '-'}</span>
+                <span class="text-gray-400">UID</span>
+                <span class="font-mono">{user()?.uid || '-'}</span>
               </div>
               <div class="flex justify-between py-3 border-b border-gray-700">
-                <span class="text-gray-400">Email</span>
-                <span>{user()?.email || 'Not set'}</span>
+                <span class="text-gray-400">{t('account.email')}</span>
+                <span>{user()?.email || t('account.notSet')}</span>
               </div>
               <div class="flex justify-between py-3 border-b border-gray-700">
-                <span class="text-gray-400">Phone</span>
-                <span>{user()?.phone || 'Not set'}</span>
+                <span class="text-gray-400">{t('account.phone')}</span>
+                <span>{user()?.phone || t('account.notSet')}</span>
               </div>
               <div class="flex justify-between py-3 border-b border-gray-700">
-                <span class="text-gray-400">User Level</span>
+                <span class="text-gray-400">{t('account.userLevel')}</span>
                 <span class="px-2 py-1 bg-primary/20 text-primary rounded text-sm">
-                  Level {user()?.user_level || 0}
+                  {t('account.level')} {user()?.user_level || 0}
                 </span>
               </div>
               <div class="flex justify-between py-3 border-b border-gray-700">
-                <span class="text-gray-400">Invitation Code</span>
+                <span class="text-gray-400">{t('account.invitationCode')}</span>
                 <span class="font-mono">{user()?.extension_code || '-'}</span>
               </div>
             </div>
@@ -209,23 +210,23 @@ const Account: Component = () => {
                 <h3 class="font-semibold mb-4">{t('account.setPayPassword')}</h3>
                 <form onSubmit={handleSetPayPassword} class="space-y-4">
                   <div class="form-group">
-                    <label class="form-label">Pay Password (6 digits)</label>
+                    <label class="form-label">{t('account.payPasswordHint')}</label>
                     <input
                       type="password"
                       class="form-input"
                       maxLength={6}
-                      placeholder="Enter 6-digit password"
+                      placeholder={t('account.enter6DigitPassword')}
                       value={payPassword()}
                       onInput={(e) => setPayPassword(e.target.value)}
                     />
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Confirm Pay Password</label>
+                    <label class="form-label">{t('account.confirmPayPassword')}</label>
                     <input
                       type="password"
                       class="form-input"
                       maxLength={6}
-                      placeholder="Confirm password"
+                      placeholder={t('account.confirmPasswordPlaceholder')}
                       value={confirmPayPassword()}
                       onInput={(e) => setConfirmPayPassword(e.target.value)}
                     />
@@ -240,10 +241,10 @@ const Account: Component = () => {
               <div class="p-4 bg-secondary/20 border border-secondary/50 rounded-lg">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h3 class="font-semibold">Two-Factor Authentication</h3>
-                    <p class="text-sm text-gray-400">Add extra security to your account</p>
+                    <h3 class="font-semibold">{t('account.twoFactorAuth')}</h3>
+                    <p class="text-sm text-gray-400">{t('account.twoFactorAuthDesc')}</p>
                   </div>
-                  <button class="btn btn-outline">Enable</button>
+                  <button class="btn btn-outline">{t('account.enable')}</button>
                 </div>
               </div>
             </div>
@@ -254,31 +255,31 @@ const Account: Component = () => {
             <h2 class="text-lg font-semibold mb-6">{t('account.changePassword')}</h2>
             <form onSubmit={handleChangePassword} class="space-y-4 max-w-md">
               <div class="form-group">
-                <label class="form-label">Current Password</label>
+                <label class="form-label">{t('account.currentPassword')}</label>
                 <input
                   type="password"
                   class="form-input"
-                  placeholder="Enter current password"
+                  placeholder={t('account.enterCurrentPassword')}
                   value={oldPassword()}
                   onInput={(e) => setOldPassword(e.target.value)}
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">New Password</label>
+                <label class="form-label">{t('account.newPassword')}</label>
                 <input
                   type="password"
                   class="form-input"
-                  placeholder="Enter new password"
+                  placeholder={t('account.enterNewPassword')}
                   value={newPassword()}
                   onInput={(e) => setNewPassword(e.target.value)}
                 />
               </div>
               <div class="form-group">
-                <label class="form-label">Confirm New Password</label>
+                <label class="form-label">{t('account.confirmNewPassword')}</label>
                 <input
                   type="password"
                   class="form-input"
-                  placeholder="Confirm new password"
+                  placeholder={t('account.confirmNewPasswordPlaceholder')}
                   value={confirmPassword()}
                   onInput={(e) => setConfirmPassword(e.target.value)}
                 />

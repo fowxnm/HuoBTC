@@ -13,6 +13,7 @@
  */
 
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { db } from '../db';
 import { users, agent, microOrder, siteConfig } from '../db/schema';
 
@@ -20,6 +21,8 @@ import { users, agent, microOrder, siteConfig } from '../db/schema';
 const systemConfig = siteConfig;
 import { eq, and, like, sql } from 'drizzle-orm';
 import { superAdminOnly, logAdminAction, ROLE_SUPER_ADMIN } from '../middleware/rbac';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 
 // Risk values for micro contract control
 const RISK_VALUES = {
@@ -29,6 +32,11 @@ const RISK_VALUES = {
 };
 
 export const superAdminRoutes = new Elysia({ prefix: '/api/admin' })
+  .use(jwt({
+    name: 'jwt',
+    secret: JWT_SECRET,
+    exp: '7d'
+  }))
   .use(superAdminOnly)
 
   // ============================================================

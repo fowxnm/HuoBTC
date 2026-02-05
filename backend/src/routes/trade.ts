@@ -1,8 +1,12 @@
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { db, usersWallet, currency, spotOrder } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 import { eq, and, desc, sql, inArray } from 'drizzle-orm';
 
 export const tradeRoutes = new Elysia({ prefix: '/trade' })
+  .use(jwt({ name: 'jwt', secret: JWT_SECRET, exp: '7d' }))
   // Get currency list
   .get('/currency_list', async () => {
     const currencies = await db.select().from(currency)

@@ -11,6 +11,8 @@ export interface WalletUser {
   id: number;
   account_number: string;
   wallet_address?: string;
+  /** 后端返回的 8 位用户 UID，连接成功后存储并持久化 */
+  uid?: string;
 }
 
 export interface WalletState {
@@ -45,7 +47,7 @@ function persist(state: WalletState) {
     else localStorage.removeItem(STORAGE_KEY_TOKEN);
     localStorage.setItem(STORAGE_KEY_WALLET, JSON.stringify({
       address: state.address,
-      user: state.user,
+      user: state.user, // 含 uid，便于刷新后恢复
     }));
   } catch {}
 }

@@ -1,8 +1,11 @@
 import { Elysia, t } from 'elysia';
+import { jwt } from '@elysiajs/jwt';
 import { createHash } from 'crypto';
 import { db, agent, agentMoneyLog, users } from '../db';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { hash, compare } from 'bcryptjs';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'btc-exchange-jwt-secret-key-2024';
 
 /** 支持两种存储格式：bcrypt 或 setup-production 的 salt:sha256 */
 async function verifyAgentPassword(stored: string, plain: string): Promise<boolean> {
@@ -21,6 +24,11 @@ async function verifyAgentPassword(stored: string, plain: string): Promise<boole
 }
 
 export const agentRoutes = new Elysia()
+  .use(jwt({
+    name: 'jwt',
+    secret: JWT_SECRET,
+    exp: '7d'
+  }))
   // Agent login
   .post('/login', async ({ body, jwt, set }) => {
     try {

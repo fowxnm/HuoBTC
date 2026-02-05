@@ -1,0 +1,32 @@
+{
+  "name": "btc-exchange-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter='apps/backend' dev & bun run --filter='apps/web' dev",
+    "dev:backend": "bun run --filter='apps/backend' dev",
+    "dev:web": "bun run --filter='apps/web' dev",
+    "build": "bun run --filter='apps/*' build",
+    "build:backend": "bun run --filter='apps/backend' build",
+    "build:web": "bun run --filter='apps/web' build",
+    "build:frontend": "cd frontend && bun run build",
+    "cap:copy": "cd frontend && bunx cap copy",
+    "cap:sync": "cd frontend && bunx cap sync",
+    "db:generate": "bun run --filter='apps/backend' db:generate",
+    "db:migrate": "bun run --filter='apps/backend' db:migrate",
+    "worker": "bun run --filter='apps/backend' worker",
+    "worker:ledger": "bun run --filter='apps/backend' worker:ledger",
+    "type-check": "bun run --filter='apps/*' type-check"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

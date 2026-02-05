@@ -1,8 +1,9 @@
 /**
- * Binance 公开 REST API：深度、成交、交易所信息（CORS 使用 data-api 域名）
+ * Binance 公开 REST API：深度、成交、交易所信息
+ * 通过后端代理避免 CORS 问题
  */
 
-const BASE = 'https://data-api.binance.vision/api/v3';
+const BASE = '/api/binance';
 
 function symbolToBinance(symbol: string): string {
   const s = (symbol || 'BTC').toUpperCase().replace(/[^A-Z0-9]/g, '');
